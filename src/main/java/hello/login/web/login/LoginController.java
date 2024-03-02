@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 @Slf4j
@@ -36,7 +38,7 @@ public class LoginController {
      * @return
      */
     @PostMapping("/login")
-    public String login(@Valid @ModelAttribute LoginForm form, BindingResult bindingResult) {
+    public String login(@Valid @ModelAttribute LoginForm form, BindingResult bindingResult, HttpServletResponse response) {
         if (bindingResult.hasErrors()) {
             return "login/loginForm";
         }
@@ -50,8 +52,25 @@ public class LoginController {
             return "login/loginForm"; // 다시 ID, Password 입력하도록
         }
 
-        // 로그인 성공 처리 TODO
+        // 로그인 성공 처리 - 쿠키 만들기
+        // 쿠키에 시간 정보를 주지 않으면 세션 쿠키로 생성됨(브라우저 종료시 모두 종료)
+        Cookie idCookie = new Cookie("memberId", String.valueOf(loginMember.getId()));
+        // 생성한 쿠키를 서버 응답에 넣어서 보내줘야 함. 그래서 HTTPServletResponse 가 필요
+        response.addCookie(idCookie);
 
         return "redirect:/";
+    }
+
+    @PostMapping("/logout")
+    public String logout(HttpServletResponse response) {
+        expireCookie(response, "memberId");
+        return "redirect:/";
+    }
+
+    private void expireCookie(HttpServletResponse response, String cookieName) {
+        // 로그아웃 - 수명이 없는 쿠키를 생성해서 넣어줌
+        Cookie cookie = new Cookie(cookieName, null);
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 }
